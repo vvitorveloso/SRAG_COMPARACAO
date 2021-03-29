@@ -26,6 +26,11 @@ library(XML)
 inicio=2009
 fim=2020
 
+
+external_down = TRUE
+#external_down = FALSE
+
+
 script_dir = dirname(rstudioapi::getActiveDocumentContext()$path)
 
 ```
@@ -55,28 +60,7 @@ links=getHTMLLinks(page)
 
 link=grep("csv",links,value=TRUE)
 
-file=paste0(script_dir,"/SRAG_",i,".csv")
 
-
-# assign(paste("Debug_links_",i),links,envir=.GlobalEnv)
-# assign(paste("Debug_link_",i),link,envir=.GlobalEnv)
-
-if(!file.exists(
-  file
-  )){
-      # Metodo que usava, por ocorrer erro utilizarei um comando externo
-      # download.file(link,
-      #               paste0(script_dir,"/SRAG_",i,".csv"))
-  
-system(paste0("aria2c -x 10 -s 10 -d / --file-allocation=none ",link ," -o ","'" ,file ,"'"))
-  }
-
-
-assign(paste0("SRAG_",i),
-       read.csv2(file,na.strings=c("NA","NaN", " ","")),
-       envir=.GlobalEnv)
-
-#end 2019
 }
   ###########################2013 a 2018
 if(between(i, 2013, 2018)){
@@ -97,19 +81,7 @@ aa=substr(as.character(i),3,4)
 link=grep(paste0("influd",aa),
           links,value=TRUE)
 
-file=paste0(script_dir,"/SRAG_",i,".csv")
 
-
-if(!file.exists(
-  file
-  )){
-system(paste0("aria2c -x 10 -s 10 -d / --file-allocation=none ",link ," -o ","'" ,file ,"'"))
-  }
-
-
-assign(paste0("SRAG_",i),
-       read.csv2(file,na.strings=c("NA","NaN", " ","")),
-       envir=.GlobalEnv)
 
 #end year 2013 2018
 }
@@ -133,24 +105,39 @@ aa=substr(as.character(i),3,4)
 link=grep(paste0("influd",aa),
           links,value=TRUE)
 
+
+
+#end year 2009 a 2012
+}
+  
+  
 file=paste0(script_dir,"/SRAG_",i,".csv")
+
+
 
 
 if(!file.exists(
   file
   )){
+
+  if(external_down == TRUE){
 system(paste0("aria2c -x 10 -s 10 -d / --file-allocation=none ",link ," -o ","'" ,file ,"'"))
+}
+  if(!external_down == TRUE){
+       download.file(link,
+                    file)
+
   }
 
+  
+  
 
 assign(paste0("SRAG_",i),
        read.csv2(file,na.strings=c("NA","NaN", " ","")),
-       envir=.GlobalEnv)
-
-#end year 2009 a 2012
-}
+       envir=.GlobalEnv)  
   
 #end loop
+}
 }
 ```
 ```{r clean up}
