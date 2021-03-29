@@ -1,0 +1,284 @@
+---
+title: "SRAG Comparativo"
+author: "Vitor Veloso"
+date: "28/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r librarys}
+library(tidyverse)
+library(RCurl)
+library(RTidyHTML)
+library(XML)
+#remotes::install_github("omegahat/RTidyHTML")
+```
+
+## subti
+
+```{r setup download}
+
+inicio=2009
+fim=2020
+
+script_dir = dirname(rstudioapi::getActiveDocumentContext()$path)
+
+```
+
+```{r clean downloads}
+# for(i in seq(inicio,fim)){
+#   if(file.exists(
+#   paste0(script_dir,"/SRAG_",i,".csv")
+#   )){
+#       file.remove(paste0(script_dir,"/SRAG_",i,".csv"))
+# }
+# }
+```
+
+
+```{r baixa SRAG apartir de 2019}
+for(i in seq(inicio,fim)){
+
+if(i>= 2019){
+  
+page=
+getURI(
+paste0("https://opendatasus.saude.gov.br/dataset/bd-srag-",i)
+)
+
+links=getHTMLLinks(page)
+
+link=grep("csv",links,value=TRUE)
+
+file=paste0(script_dir,"/SRAG_",i,".csv")
+
+
+# assign(paste("Debug_links_",i),links,envir=.GlobalEnv)
+# assign(paste("Debug_link_",i),link,envir=.GlobalEnv)
+
+if(!file.exists(
+  file
+  )){
+      # Metodo que usava, por ocorrer erro utilizarei um comando externo
+      # download.file(link,
+      #               paste0(script_dir,"/SRAG_",i,".csv"))
+  
+system(paste0("aria2c -x 10 -s 10 -d / --file-allocation=none ",link ," -o ","'" ,file ,"'"))
+  }
+
+
+assign(paste0("SRAG_",i),
+       read.csv2(file,na.strings=c("NA","NaN", " ","")),
+       envir=.GlobalEnv)
+
+#end 2019
+}
+  ###########################2013 a 2018
+if(between(i, 2013, 2018)){
+page=
+getURI(
+  #possui apenas links de 2013
+paste0("https://opendatasus.saude.gov.br/dataset/bd-srag-2012-a-2018")
+)
+
+links=getHTMLLinks(page)
+
+link=grep("csv",links,value=TRUE)
+
+aa=substr(as.character(i),3,4)
+
+
+
+link=grep(paste0("influd",aa),
+          links,value=TRUE)
+
+file=paste0(script_dir,"/SRAG_",i,".csv")
+
+
+if(!file.exists(
+  file
+  )){
+system(paste0("aria2c -x 10 -s 10 -d / --file-allocation=none ",link ," -o ","'" ,file ,"'"))
+  }
+
+
+assign(paste0("SRAG_",i),
+       read.csv2(file,na.strings=c("NA","NaN", " ","")),
+       envir=.GlobalEnv)
+
+#end year 2013 2018
+}
+  
+    ###########################2009 a 2012
+  
+if(between(i, 2009, 2012)){
+page=
+getURI(
+  #possui apenas links de 2013
+paste0("https://opendatasus.saude.gov.br/dataset/bd-srag-2009-a-2012")
+)
+
+links=getHTMLLinks(page)
+
+link=grep("csv",links,value=TRUE)
+
+
+aa=substr(as.character(i),3,4)
+
+link=grep(paste0("influd",aa),
+          links,value=TRUE)
+
+file=paste0(script_dir,"/SRAG_",i,".csv")
+
+
+if(!file.exists(
+  file
+  )){
+system(paste0("aria2c -x 10 -s 10 -d / --file-allocation=none ",link ," -o ","'" ,file ,"'"))
+  }
+
+
+assign(paste0("SRAG_",i),
+       read.csv2(file,na.strings=c("NA","NaN", " ","")),
+       envir=.GlobalEnv)
+
+#end year 2009 a 2012
+}
+  
+#end loop
+}
+```
+```{r clean up}
+rm(aa,file,fim,i,link,links,page)
+```
+
+```{r}
+# for(i in seq(2011,2022)){
+# if(between(i, 2012, 2018)){
+#   print(i)
+# }
+# }
+
+i=19
+
+#Evolução obito = 2
+SRAG_2020 %>%   
+      filter(EVOLUCAO==2) %>%
+    count()
+  
+  SRAG_2018$DT_OBITO
+
+my = function(my){
+  
+lis = list()
+
+  my %>%   
+    filter(!is.na(DT_OBITO)) %>%
+    count()
+}
+rm(lis)
+my(SRAG_2009)
+
+##ACHOU
+c=0
+obitos=as.data.frame(matrix(,0,2))
+
+for(i in seq(inicio,fim)){
+#loop
+c=c+1
+
+if(i >= 2019 ){
+
+obito <-
+eval(parse(text=paste0("SRAG_",i))) %>%
+  filter(EVOLUCAO==2) %>%
+  count()
+
+
+obitos <- rbind(obitos,c(i,as.numeric(obito)))
+
+}
+
+if(between(i, 2009, 2018)){
+
+obito <- 
+eval(parse(text=paste0("SRAG_",i))) %>%
+  filter(!is.na(DT_OBITO)) %>%
+  count()
+
+obitos <- rbind(obitos,c(i,as.numeric(obito)))
+
+}
+
+media_menos_2020 =
+mean(
+head(obitos$X4372,-1)
+)
+
+total_2020 = obitos$X4372[nrow(obitos)]
+
+total_2020 - media_menos_2020
+
+SRAG_2020[nrow(SRAG_2020),]
+
+zzz=
+SRAG_2009 %>%
+  filter(str_detect(DT_NOTIFIC, "2010"))
+
+unique(zzz$DT_NOTIFIC)
+```
+
+
+```{r}
+}
+mean(obitos$X4372)
+
+obitos[nrow(obitos),]
+
+
+298932-40946.25
+
+
+x<-
+eval(parse(text=paste0("SRAG_",2009))) %>%
+  filter(!is.na(DT_OBITO))
+ 
+
+ x %>%
+   filter(PCR_ETIOL == 1) %>%
+   count()
+
+
+ x %>%
+   filter(PCR_ETIOL == 2) %>%
+   count()
+ 
+  x %>%
+   filter(CLASSI_FIN == 1) %>%
+   count()
+###########2019 >> 2086
+ SRAG_2009 %>%
+   filter(EVOLUCAO == 2)%>%
+   filter(PCR_ETIOL == 1 )%>%
+   count()
+   SRAG_2009 %>%
+   filter(EVOLUCAO == 2)%>%
+   filter(PCR_ETIOL == 2 )%>%
+   count()
+  
+   
+  140+1705
+   
+ 1716 +251	
+ 
+ 
+ unique(x$CLASSI_FIN)
+
+```
+
+
