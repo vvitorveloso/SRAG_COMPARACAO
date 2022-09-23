@@ -1,0 +1,366 @@
+---
+title: "SRAG Comparativo"
+author: "Vitor Veloso"
+date: "28/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r librarys}
+library(tidyverse)
+library(RCurl)
+#library(RTidyHTML)
+library(XML)
+#remotes::install_github("omegahat/RTidyHTML")
+```
+
+## subti
+
+```{r setup download}
+
+inicio=2009
+fim=2020
+
+
+#external_down = TRUE
+external_down = FALSE
+
+UA <- "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0"
+script_dir = dirname(rstudioapi::getActiveDocumentContext()$path)
+
+```
+
+```{r clean downloads}
+ for(i in seq(inicio,fim)){
+   if(file.exists(
+   paste0(script_dir,"/SRAG_",i,".csv")
+   )){
+       file.remove(paste0(script_dir,"/SRAG_",i,".csv"))
+ }
+ }
+```
+
+
+```{r baixa SRAG apartir de 2019}
+for(i in seq(inicio, fim)) {
+  if (between(i, 2021, 2022)) {
+    page =
+      getURI(paste0("https://opendatasus.saude.gov.br/dataset/srag-2021-e-2022"), httpheader = c('User-Agent' = UA))
+    
+    links = getHTMLLinks(page)
+    link = grep("csv", links, value = TRUE)
+    aa = substr(as.character(i), 3, 4)
+    link = grep(paste0("INFLUD", aa),
+                links, value = TRUE)
+  }
+ if (i == 2020) {
+    page =
+       getURI(paste0("https://opendatasus.saude.gov.br/dataset/srag-2020") , httpheader = c('User-Agent' = UA))
+    
+    links = getHTMLLinks(page)
+    link = grep("csv", links, value = TRUE)
+    aa = substr(as.character(i), 3, 4)
+    link = grep(paste0("INFLUD", aa),
+                links, value = TRUE)
+    
+  }
+  if (i == 2019) {
+    page =
+      getURI(paste0("https://opendatasus.saude.gov.br/dataset/srag-2019"), httpheader = c('User-Agent' = UA))
+    
+    links = getHTMLLinks(page)
+    link = grep("csv", links, value = TRUE)
+    aa = substr(as.character(i), 3, 4)
+    link = grep(paste0("INFLUD", aa),
+                links, value = TRUE)
+    
+  }
+  ###########################2013 a 2018
+  if (between(i, 2013, 2018)) {
+    page =
+      getURI(#possui apenas links de 2013
+        paste0(
+          "https://opendatasus.saude.gov.br/dataset/srag-2013-2018"), httpheader = c('User-Agent' = UA
+        ))
+    
+    links = getHTMLLinks(page)
+    link = grep("csv", links, value = TRUE)
+    aa = substr(as.character(i), 3, 4)
+    link = grep(paste0("INFLUD", aa),
+                links, value = TRUE)
+    
+    #end year 2013 2018
+  }
+  ###########################2009 a 2012
+  
+  if (between(i, 2009, 2012)) {
+    page =
+      getURI(#possui apenas links de 2013
+        paste0(
+          "https://opendatasus.saude.gov.br/dataset/srag-2009-2012"), httpheader = c('User-Agent' = UA
+        ))
+    
+    links = getHTMLLinks(page)
+    link = grep("csv", links, value = TRUE)
+    aa = substr(as.character(i), 3, 4)
+    link = grep(paste0("INFLUD", aa),
+                links, value = TRUE)
+    #end year 2009 a 2012
+  }
+  
+  file = paste0(script_dir, "/SRAG_", i, ".csv")
+  
+  if (!file.exists(file)) {
+    
+    if (external_down == TRUE) {
+      system(paste0(
+        "aria2c -x 10 -s 10 -d / --file-allocation=none ",
+        link ,
+        " -o ",
+        "'" ,
+        file ,
+        "'"
+      ))
+    }
+
+    if (!external_down == TRUE) {
+      download.file(link,
+                    file)
+      
+    }
+    
+    assign(paste0("SRAG_", i),
+           read.csv2(file, na.strings = c("NA", "NaN", " ", "")),
+           envir = .GlobalEnv)
+    }
+
+#end loop
+  
+}
+```
+
+```{r clean up}
+#rm(aa,file,fim,i,link,links,page)
+```
+
+
+
+```{r F. OLD CODE}
+
+#csvs <- grep(dir(script_dir),pattern = "SRAG_",value = TRUE) 
+#Data_file <- map(csvs,read.delim, stringsAsFactors = FALSE, check.names = FALSE, row.names = NULL)
+#Data_file %>% reduce(inner_join, by = "DT_OBITO")
+
+MEDIAS = data.frame(matrix(nrow = 0, ncol = 2) )
+colnames(MEDIAS) = c("Ano", "Média")
+
+#SRAG_2009$DT_OBITO
+
+SRAG_2010_date <-
+SRAG_2010 %>%
+  mutate(DT_OBITO = as.Date(DT_OBITO,"%d/%m/%Y"),DT_SIN_PRI = as.Date(DT_SIN_PRI,"%d/%m/%Y") ) %>%
+  select(DT_OBITO,DT_SIN_PRI) %>%
+  drop_na(.) %>%
+  mutate(avg = difftime(DT_OBITO,DT_SIN_PRI,units = c("days")))
+
+MEDIAS[nrow(MEDIAS) + 1,] = c(2010, mean(SRAG_2010_date$avg))
+
+SRAG_2011_date <-
+SRAG_2011 %>%
+  mutate(DT_OBITO = as.Date(DT_OBITO,"%d/%m/%Y"),DT_SIN_PRI = as.Date(DT_SIN_PRI,"%d/%m/%Y") ) %>%
+  select(DT_OBITO,DT_SIN_PRI) %>%
+  drop_na(.) %>%
+  mutate(avg = difftime(DT_OBITO,DT_SIN_PRI,units = c("days")))
+
+MEDIAS[nrow(MEDIAS) + 1,] = c(2011, mean(SRAG_2011_date$avg))
+
+SRAG_2012_date <-
+SRAG_2012 %>%
+  mutate(DT_OBITO = as.Date(DT_OBITO,"%d/%m/%Y"),DT_SIN_PRI = as.Date(DT_SIN_PRI,"%d/%m/%Y") ) %>%
+  select(DT_OBITO,DT_SIN_PRI) %>%
+  drop_na(.) %>%
+  mutate(avg = difftime(DT_OBITO,DT_SIN_PRI,units = c("days")))
+
+MEDIAS[nrow(MEDIAS) + 1,] = c(2012, mean(SRAG_2012_date$avg))
+
+
+SRAG_2013_date <-
+SRAG_2013 %>%
+  mutate(DT_OBITO = as.Date(DT_OBITO,"%d/%m/%Y"),DT_SIN_PRI = as.Date(DT_SIN_PRI,"%d/%m/%Y") ) %>%
+  select(DT_OBITO,DT_SIN_PRI) %>%
+  drop_na(.) %>%
+  mutate(avg = difftime(DT_OBITO,DT_SIN_PRI,units = c("days")))
+
+MEDIAS[nrow(MEDIAS) + 1,] = c(2013, mean(SRAG_2013_date$avg))
+
+
+SRAG_2014_date <-
+SRAG_2014 %>%
+  mutate(DT_OBITO = as.Date(DT_OBITO,"%d/%m/%Y"),DT_SIN_PRI = as.Date(DT_SIN_PRI,"%d/%m/%Y") ) %>%
+  select(DT_OBITO,DT_SIN_PRI) %>%
+  drop_na(.) %>%
+  mutate(avg = difftime(DT_OBITO,DT_SIN_PRI,units = c("days")))
+
+MEDIAS[nrow(MEDIAS) + 1,] = c(2014, mean(SRAG_2014_date$avg))
+
+
+SRAG_2015_date <-
+SRAG_2015 %>%
+  mutate(DT_OBITO = as.Date(DT_OBITO,"%d/%m/%Y"),DT_SIN_PRI = as.Date(DT_SIN_PRI,"%d/%m/%Y") ) %>%
+  select(DT_OBITO,DT_SIN_PRI) %>%
+  drop_na(.) %>%
+  mutate(avg = difftime(DT_OBITO,DT_SIN_PRI,units = c("days")))
+
+MEDIAS[nrow(MEDIAS) + 1,] = c(2015, mean(SRAG_2015_date$avg))
+
+SRAG_2010$DT_SIN_PRI
+SRAG_2011$DT_OBITO
+SRAG_2012$DT_OBITO
+SRAG_2013$DT_OBITO
+SRAG_2014$DT_OBITO
+SRAG_2015$DT_OBITO
+SRAG_2016$DT_OBITO
+SRAG_2017$DT_OBITO
+SRAG_2018$DT_OBITO
+#SRAG_2019$DT_OBITO
+#SRAG_2020$DT_OBITO
+#SRAG_2021$DT_OBITO
+#SRAG_2022$DT_OBITO
+
+
+```
+
+
+
+
+
+```{r}
+# for(i in seq(2011,2022)){
+# if(between(i, 2012, 2018)){
+#   print(i)
+# }
+# }
+
+i=19
+
+#Evolução obito = 2
+SRAG_2020 %>%   
+      filter(EVOLUCAO==2) %>%
+    count()
+  
+  SRAG_2018$DT_OBITO
+
+my = function(my){
+  
+lis = list()
+
+  my %>%   
+    filter(!is.na(DT_OBITO)) %>%
+    count()
+}
+rm(lis)
+#my(SRAG_2009)
+
+##ACHOU
+c=0
+obitos=as.data.frame(matrix(0,2))
+
+for(i in seq(inicio,fim)){
+#loop
+c=c+1
+
+if(i >= 2019 ){
+
+obito <-
+eval(parse(text=paste0("SRAG_",i))) %>%
+  filter(EVOLUCAO==2) %>%
+  count()
+
+
+obitos <- rbind(obitos,c(i,as.numeric(obito)))
+
+}
+
+if(between(i, 2009, 2018)){
+
+obito <- 
+eval(parse(text=paste0("SRAG_",i))) %>%
+  filter(!is.na(DT_OBITO)) %>%
+  count()
+
+obitos <- rbind(obitos,c(i,as.numeric(obito)))
+
+}
+
+media_menos_2020 =
+mean(
+head(obitos$X4372,-1)
+)
+
+total_2020 = obitos$X4372[nrow(obitos)]
+
+total_2020 - media_menos_2020
+
+SRAG_2020[nrow(SRAG_2020),]
+
+zzz=
+SRAG_2009 %>%
+  filter(str_detect(DT_NOTIFIC, "2010"))
+
+unique(zzz$DT_NOTIFIC)
+```
+
+
+```{r}
+}
+mean(obitos$X4372)
+
+obitos[nrow(obitos),]
+
+
+298932-40946.25
+
+
+x<-
+eval(parse(text=paste0("SRAG_",2009))) %>%
+  filter(!is.na(DT_OBITO))
+ 
+
+ x %>%
+   filter(PCR_ETIOL == 1) %>%
+   count()
+
+
+ x %>%
+   filter(PCR_ETIOL == 2) %>%
+   count()
+ 
+  x %>%
+   filter(CLASSI_FIN == 1) %>%
+   count()
+###########2019 >> 2086
+ SRAG_2009 %>%
+   filter(EVOLUCAO == 2)%>%
+   filter(PCR_ETIOL == 1 )%>%
+   count()
+   SRAG_2009 %>%
+   filter(EVOLUCAO == 2)%>%
+   filter(PCR_ETIOL == 2 )%>%
+   count()
+  
+   
+  140+1705
+   
+ 1716 +251	
+ 
+ 
+ unique(x$CLASSI_FIN)
+
+```
+
+
